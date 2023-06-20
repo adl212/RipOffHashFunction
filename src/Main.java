@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.function.BinaryOperator;
-
+import java.util.Arrays;
 import static java.lang.Math.sqrt;
 
 public class Main {
@@ -70,16 +70,23 @@ public class Main {
         int chunks = (int) Math.ceil((double) bytes.length() / CHUNK_SIZE);
         bytes += "0".repeat(CHUNK_SIZE * chunks - bytes.length());
 
-        int[] hValues = new int[NUM_PRIMES];
-        for (int i = 0; i < NUM_PRIMES; i++) {
+        int[] hValues = new int[8];
+        for (int i = 0; i < 8; i++) {
             hValues[i] = dConstants.get((chunks + i) % NUM_PRIMES);
         }
 
         for (int i = 0; i < chunks; i++) {
-            int[] abcdefgh = new int[NUM_PRIMES];
-            System.arraycopy(hValues, 0, abcdefgh, 0, NUM_PRIMES);
+            int[] abcdefg = new int[8];
+            System.arraycopy(hValues, 0, abcdefg, 0, 8);
+            int a = abcdefg[0];
+            int b = abcdefg[1];
+            int c = abcdefg[2];
+            int d = abcdefg[3];
+            int e = abcdefg[4];
+            int f = abcdefg[5];
+            int g = abcdefg[6];
+            int h = abcdefg[7];
             List<Integer> w = getChunkWords(bytes, i, chunks);
-
             for (int j = 8; j < 64; j++) {
                 int s0 = w.get(j - 1) ^ (w.get(j - 3) % 4);
                 int s1 = w.get(j - 2) ^ (w.get(j - 6) % 3);
@@ -87,32 +94,25 @@ public class Main {
                 int ssum = s2 + w.get(j - 7);
                 w.add(ssum);
             }
-
             for (int j = 0; j < 64; j++) {
                 int index = (3 * j + 1) % rf.size();
                 BinaryOperator<Integer> fn = rf.get(index);
-                int a = abcdefgh[0];
-                int b = abcdefgh[1];
-                int c = abcdefgh[2];
-                int d = abcdefgh[3];
-                int e = abcdefgh[4];
-                int f = abcdefgh[5];
-                int g = abcdefgh[6];
-                int h = abcdefgh[7];
-                int temp1 = abcdefgh[0] ^ fn.apply(abcdefgh[1], abcdefgh[2]) + (abcdefgh[3] ^ fn.apply(abcdefgh[4], abcdefgh[0])) + w.get(j);
-                int temp2 = abcdefgh[5] ^ fn.apply(abcdefgh[0], abcdefgh[6]) + w.get(j);
-                abcdefgh[7] = abcdefgh[6];
-                abcdefgh[6] = abcdefgh[5] + temp1;
-                abcdefgh[5] = abcdefgh[4];
-                abcdefgh[4] = abcdefgh[3];
-                abcdefgh[3] = abcdefgh[2] + temp2;
-                abcdefgh[2] = abcdefgh[1];
-                abcdefgh[1] = abcdefgh[0] + temp1 + temp2;
-                abcdefgh[0] = abcdefgh[7];
+                int temp1 = (a ^ (fn.apply(b, c))) + (d ^ (fn.apply(e, a))) + w.get(j);
+                int temp2 = (f ^ (fn.apply(a, g))) + w.get(j);
+                h = g;
+                g = d + temp1;
+                f = a + temp1 + temp2;
+                e = d;
+                d = c;
+                c = b + temp2;
+                b = a;
+                a = h;
             }
+            ArrayList<Integer> newabcdefg = new ArrayList<>();
+            newabcdefg.addAll(Arrays.asList(a,b,c,d,e,f,g,h));
 
-            for (int j = 0; j < NUM_PRIMES; j++) {
-                hValues[j] += abcdefgh[j];
+            for (int j = 0; j < 8; j++) {
+                hValues[j] += newabcdefg.get(j);
             }
         }
 
@@ -132,7 +132,9 @@ public class Main {
         int end = ((chunkSize * (chunkIndex + 1)) / 4) - 1;
 
         for (int j = start; j <= end; j++) {
-            String str = bytes.substring(j * 4, (j * 4) + 4);
+            char[] chars = new char[4];
+            bytes.getChars(j * 4, (j * 4) + 4, chars, 0);
+            String str = new String(chars);
             chunkWords.add(stringToBytesToInt(str));
         }
 
